@@ -5,7 +5,7 @@ import os
 
 class Image:
     """ Class for image """
-    
+
     def __init__(self, image_path):
         self.set_attributes(image_path)
 
