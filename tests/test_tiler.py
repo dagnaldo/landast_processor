@@ -77,7 +77,7 @@ def test_call_gdal_tiler():
     out_path_check = os.path.join(out_path, SCENE + "_B4.tms")
 
     subprocess.call('gdal_tiler.py -p tms --src-nodata 0 --zoom={} '
-        '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
+                    '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
 
     assert(os.path.exists(out_path))
     assert(os.path.exists(out_path_check))
@@ -86,8 +86,12 @@ def test_call_gdal_tiler():
 
     zoom = '7:8'
     subprocess.call('gdal_tiler.py -p tms --src-nodata 0 --zoom={} '
-        '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
+                    '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
 
     assert(os.path.exists(os.path.join(out_path_check, '8')))
 
     shutil.rmtree(out_path_check)
+
+
+def test_tiler_tools():
+    pass
