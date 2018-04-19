@@ -15,14 +15,14 @@ SCENE_NAME = "LC08_L1TP_221071_20170521_20170526_01_T1"
 
 @pytest.fixture
 def create_image():
-    path_1 = os.path.join(LOCAL_PATH, SCENE_NAME + "_r6g5b4.TIF")
-    path_2 = os.path.join(LOCAL_PATH, SCENE_NAME + "_r6g5b4")
+    path_1 = os.path.join(LOCAL_PATH, SCENE_NAME + "_r4b3g2.TIF")
+    path_2 = os.path.join(LOCAL_PATH, SCENE_NAME + "_r4b3g2")
 
     image_1 = Image(path_1)
     image_2 = Image(path_2)
 
-    create_files(image_1.image_dir, SCENE_NAME + "_r6g5b4.TIF")
-    create_files(image_2.image_dir, SCENE_NAME + "_r6g5b4")
+    create_files(image_1.image_dir, SCENE_NAME + "_r4b3g2.TIF")
+    create_files(image_2.image_dir, SCENE_NAME + "_r4b3g2")
 
     return image_1, image_2, path_1, path_2
 
@@ -37,8 +37,8 @@ def test_image_info(create_image):
     assert(data[1].image_path == data[3])
     assert(data[0].image_dir == LOCAL_PATH)
     assert(data[1].image_dir == LOCAL_PATH)
-    assert(data[0].image_name == SCENE_NAME + "_r6g5b4")
-    assert(data[1].image_name == SCENE_NAME + "_r6g5b4")
+    assert(data[0].image_name == SCENE_NAME + "_r4b3g2")
+    assert(data[1].image_name == SCENE_NAME + "_r4b3g2")
 
 def test_image_rename(create_image):
     data = create_image
