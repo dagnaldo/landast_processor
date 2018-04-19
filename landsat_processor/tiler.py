@@ -4,6 +4,8 @@
 import os
 import subprocess
 
+from .image_info import Image
+
 os.environ["PATH"] += ":{}".format(
     os.path.join(os.path.abspath(os.path.dirname(__file__)), 'tilers-tools')
 )
@@ -17,26 +19,67 @@ class Tiler:
     method make_tiles creates a pyramid for image
     """
 
-    def __get_image_info(self):
-        pass
+    @classmethod
+    def __get_image_info(self, input_image):
+        """
+        Get info from raster using gdal
+        requires gdal >= 2.1.3
+        params:
+            input_image: Image instance 
 
-    def __convert_to_byte_scale(input_image, output_folder = ""):
-        image_path = os.path.join(output_folder, "{}.TIF".format(input_image.image_name))
+        returns:
+            json data from gdalinfo command
+        """
+        command = 'gdalinfo -json {0}'.format(input_image.image_path)
+
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+        return json.loads(proc.communicate()[0].decode())
+
+    @classmethod
+    def __convert_to_byte_scale(self, input_image, output_folder=""):
+        """
+        Translates raster using gdal
+        requires gdal >= 2.1.3
+        params:
+            input_image: Image instance
+            output_folder: output folder for image
+        returns:
+            path for converted image
+        """
+        command = 'gdal_translate -ot Byte -scale {0} {1}'
+
+        image_name = "{}.TIF".format(input_image.image_name)
+        image_path = os.path.join(output_folder, )
         output_image = Image(image_path)
-        command = 'gdal_translate -ot Byte -scale {0} {1}'.format(
+
+        command = command.format(
             input_image.image_path, output_image.image_path)
 
         call_gdal_transform(command, input_image, output_image)
         return output_image
 
-    def _generate_tms(input_image, naming_image, output_folder="", nodata=[0,0,0], zoom=[2,15]):
-        nodata = ",".join(map(str, nodata))
-        command = "gdal_tiler.py -q -p tms --src-nodata {nodata} --zoom={min_z}:{max_z} -t {path} {image}".format(
-            nodata=nodata,
-            min_z=zoom[0],
-            max_z=zoom[1],
-            path=output_folder,
-            image=input_image
+    @classmethod
+    def _generate_tms(
+        self, input_image, naming_image,
+        output_folder="", nodata=[0, 0, 0], zoom=[2, 15]
+    ):
+        """
+        Generate TMS Pyramid for input Image instance
+        params:
+            input_image: Image object
+            naming_image: name of output path
+            output_folder: folder for output pyramid
+            nodata: nodata info, must be same number as source bands
+            zoom: list of zoom levels ([start, end])
+        """
+        command = "gdal_tiler.py -q -p tms --src-nodata {nodata} \
+            --zoom={min_z}:{max_z} -t {path} {image}"
+        str_nodata = ",".join(map(str, nodata))
+
+        command = command.format(
+            nodata=nodata, path=output_folder, image=input_image,
+            min_z=zoom[0], max_z=zoom[1],
         )
 
         try:
@@ -50,9 +93,16 @@ class Tiler:
 
         return output_folder
 
-    def _generate_xml(input_image, naming_image, link_base, output_folder=""):
+    @classmethod
+    def _generate_xml(
+        self, input_image, naming_image,
+        link_base, output_folder=""
+    ):
+        """
+        Generates XML for image on same path of image
+        """
 
-        image_info = get_image_info(Image(input_image))
+        image_info = Tiler.__get_image_info(Image(input_image))
 
         try:
             upper_left = image_info['cornerCoordinates']['upperLeft']
@@ -108,14 +158,29 @@ class Tiler:
 
         return xml_name
 
-
-    def make_tiles(image_path, link_base, output_folder="", zoom=[2, 15], nodata=[0,0,0]):
+    @staticmethod
+    def make_tiles(
+        image_path, link_base, output_folder="",
+        zoom=[2, 15], nodata=[0, 0, 0]
+    ):
+        """
+        Creates tiles for image using tilers-tools
+        params:
+            image_path: path for image
+            link_base: http url for xml file. E.g.: http://localhost
+            output_folder: folder for image and pyramid files
+                default is 'tms/'
+            zoom: list of zoom levels ([start, end])
+            nodata: nodata info, must be same number as source bands
+        returns:
+            pyramid data and xml data on output folder for zoom levels
+        """
 
         original_image = Image(image_path)
         converted_image = convert_to_8b(
             original_image, output_folder=output_folder)
 
-        tms = generate_tms(
+        tms = Tiler._generate_tms(
             converted_image.image_path,
             original_image,
             output_folder=output_folder,
@@ -126,7 +191,7 @@ class Tiler:
             return False
 
         link_base = os.path.join(link_base, "")
-        xml = generate_xml(
+        xml = Tiler._generate_xml(
             converted_image.image_path,
             original_image,
             link_base=link_base,
