@@ -2,8 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 import subprocess
 
+from osgeo import gdal
+
+from .exceptions import TMSError, XMLError
 from .image_info import Image
 
 os.environ["PATH"] += ":{}".format(
@@ -12,32 +16,64 @@ os.environ["PATH"] += ":{}".format(
 
 
 class Tiler:
-    """ 
-    Class for tiler data using tiler-tools 
+    """
+    Class for tiler data using tiler-tools
     from https://github.com/vss-devel/tilers-tools
 
     method make_tiles creates a pyramid for image
     """
 
     @classmethod
-    def __get_image_info(self, input_image):
+    def __validate_image_bands(self, image, data):
+        """
+        Internal method to check if image exists and is a valid datasource
+        """
+
+        if not os.path.isfile(image):
+            return False
+
+        try:
+            ds = gdal.Open(image)
+        except Exception as exc:
+            print(exc)
+            return False
+
+        return ds.RasterCount == len(data)
+
+    @classmethod
+    def __subprocess(self, command):
+        ok = True
+
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError as exc:
+            print(exc)
+            ok = False
+        except OSError as exc:
+            print(exc)
+            ok = False
+
+        return ok
+
+    @classmethod
+    def __get_image_info(self, image_path):
         """
         Get info from raster using gdal
         requires gdal >= 2.1.3
         params:
-            input_image: Image instance 
+            image_path: absolute path for image
 
         returns:
             json data from gdalinfo command
         """
-        command = 'gdalinfo -json {0}'.format(input_image.image_path)
+        command = 'gdalinfo -json {0}'.format(image_path)
 
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 
         return json.loads(proc.communicate()[0].decode())
 
     @classmethod
-    def __convert_to_byte_scale(self, input_image, output_folder=""):
+    def __convert_to_byte_scale(self, input_image, output_folder="~/tms/"):
         """
         Translates raster using gdal
         requires gdal >= 2.1.3
@@ -45,24 +81,26 @@ class Tiler:
             input_image: Image instance
             output_folder: output folder for image
         returns:
-            path for converted image
+            Image instance of output_image
         """
         command = 'gdal_translate -ot Byte -scale {0} {1}'
 
         image_name = "{}.TIF".format(input_image.image_name)
-        image_path = os.path.join(output_folder, )
-        output_image = Image(image_path)
-
+        output_image_path = os.path.join(output_folder, image_name)
+        output_image = Image(output_image_path)
         command = command.format(
-            input_image.image_path, output_image.image_path)
+            input_image.image_path, output_image.image_path
+        )
 
-        call_gdal_transform(command, input_image, output_image)
+        if not Tiler.__subprocess(command):
+            return False
+
         return output_image
 
     @classmethod
     def _generate_tms(
-        self, input_image, naming_image,
-        output_folder="", nodata=[0, 0, 0], zoom=[2, 15]
+        self, image_path, output_folder="~/tms/",
+        nodata=[0, 0, 0], zoom=[2, 15]
     ):
         """
         Generate TMS Pyramid for input Image instance
@@ -77,39 +115,35 @@ class Tiler:
             --zoom={min_z}:{max_z} -t {path} {image}"
         str_nodata = ",".join(map(str, nodata))
 
+        if not Tiler.__validate_image_bands(image_path, nodata):
+            raise TMSError('Input image is not a valid data, check if \
+                            length must be same as datasource bands')
+
         command = command.format(
-            nodata=nodata, path=output_folder, image=input_image,
+            nodata=str_nodata, path=output_folder, image=image_path,
             min_z=zoom[0], max_z=zoom[1],
         )
 
-        try:
-            subprocess.check_call(command, shell=True)
-        except subprocess.CalledProcessError as exc:
-            print(exc)
-            return False
-        except OSError as exc:
-            print(exc)
+        if not Tiler.__subprocess(command):
             return False
 
-        return output_folder
+        return True
 
     @classmethod
     def _generate_xml(
-        self, input_image, naming_image,
-        link_base, output_folder=""
+        self, image_path, naming_image,
+        link_base, output_folder="~/tms/"
     ):
         """
         Generates XML for image on same path of image
         """
 
-        image_info = Tiler.__get_image_info(Image(input_image))
-
         try:
+            image_info = Tiler.__get_image_info(image_path=image_path)
             upper_left = image_info['cornerCoordinates']['upperLeft']
             lower_right = image_info['cornerCoordinates']['lowerRight']
         except Exception as exc:
-            print(exc)
-            return False
+            raise ValueError(exc)
 
         target_window = "<TargetWindow>\n\
             <UpperLeftX>{0}</UpperLeftX>\n\
@@ -151,16 +185,16 @@ class Tiler:
         )
 
         xml_name = naming_image.image_name + ".xml"
-        out_xml = os.path.join(output_folder, xml_name)
+        xml = os.path.join(output_folder, xml_name)
 
-        with open(out_xml, 'w') as f:
+        with open(xml, 'w') as f:
             f.write(tms_xml)
 
         return xml_name
 
     @staticmethod
     def make_tiles(
-        image_path, link_base, output_folder="",
+        image_path, link_base, output_folder="~/tms/",
         zoom=[2, 15], nodata=[0, 0, 0]
     ):
         """
@@ -169,36 +203,41 @@ class Tiler:
             image_path: path for image
             link_base: http url for xml file. E.g.: http://localhost
             output_folder: folder for image and pyramid files
-                default is 'tms/'
+                default is '~/tms/'
             zoom: list of zoom levels ([start, end])
             nodata: nodata info, must be same number as source bands
         returns:
             pyramid data and xml data on output folder for zoom levels
         """
 
-        original_image = Image(image_path)
-        converted_image = convert_to_8b(
-            original_image, output_folder=output_folder)
+        input_image = Image(image_path)
 
-        tms = Tiler._generate_tms(
-            converted_image.image_path,
-            original_image,
-            output_folder=output_folder,
-            nodata=nodata,
-            zoom=zoom)
+        converted_image = Tiler.__convert_to_byte_scale(
+            input_image=input_image,
+            output_folder=output_folder
+        )
 
-        if not tms:
-            return False
+        try:
+            tms = Tiler._generate_tms(
+                image_path=converted_image.image_path,
+                output_folder=output_folder,
+                nodata=nodata,
+                zoom=zoom
+            )
+        except Exception as exc:
+            raise TMSError(exc)
 
-        link_base = os.path.join(link_base, "")
-        xml = Tiler._generate_xml(
-            converted_image.image_path,
-            original_image,
-            link_base=link_base,
-            output_folder=output_folder)
+        try:
+            xml = Tiler._generate_xml(
+                image_path=converted_image.image_path,
+                naming_image=input_image,
+                link_base=os.path.join(link_base, ""),
+                output_folder=output_folder
+            )
+        except Exception as exc:
+            raise XMLError(exc)
 
-        if not xml:
-            return False
-
+        # Removing converted image file on output path
         converted_image.remove_file()
+
         return (tms, xml)
