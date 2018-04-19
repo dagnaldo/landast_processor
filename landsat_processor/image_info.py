@@ -13,11 +13,11 @@ class Image:
         os.remove(self.image_path)
 
     def rename_file(self, new_filename):
-        new_path = os.path.join(self.image_folder, new_filename)
+        new_path = os.path.join(self.image_dir, new_filename)
         os.rename(self.image_path, new_path)
-        self.set_attributes(os.path.join(self.image_folder, new_filename))
+        self.set_attributes(os.path.join(self.image_dir, new_filename))
 
     def set_attributes(self, image_path):
         self.image_path = os.path.abspath(image_path)
-        self.image_folder = os.path.dirname(self.image_path)
+        self.image_dir = os.path.dirname(self.image_path)
         self.image_name = os.path.basename(self.image_path).split(".")[0]
