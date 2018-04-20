@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from osgeo import gdal
+from .utils import Util
 
 
 class Composer:
@@ -26,22 +26,6 @@ class Composer:
             )
 
         return file_path
-
-    @classmethod
-    def __validate_output_image_bands(self, image, ordered_filelist):
-        """
-        Internal method to check if image exists and is a valid datasource
-        """
-
-        if not os.path.isfile(image):
-            return False
-
-        try:
-            ds = gdal.Open(image)
-        except Exception as exc:
-            return False
-
-        return ds.RasterCount == len(ordered_filelist)
 
     @staticmethod
     def create_composition(
@@ -84,10 +68,10 @@ class Composer:
         for file in ordered_filelist:
             gdal_mergepy_command += " " + file
 
-        subprocess.call(gdal_mergepy_command, shell=True)
+        if not Util._subprocess(gdal_mergepy_command):
+            return None
 
-        is_valid = Composer.__validate_output_image_bands(
-            file_path, ordered_filelist)
+        is_valid = Util._validate_image_bands(file_path, ordered_filelist)
 
         if is_valid:
             return {
