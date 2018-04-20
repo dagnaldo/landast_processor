@@ -13,7 +13,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = ['Click>=6.0', 'gdal==2.1.3']
 
-setup_requirements = ['pytest-runner', 'gdal-bin', 'python-gdal']
+setup_requirements = ['pytest-runner',]
 
 test_requirements = ['pytest', ]
 
