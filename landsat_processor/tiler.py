@@ -195,7 +195,7 @@ class Tiler:
     @staticmethod
     def make_tiles(
         image_path, link_base, output_folder="~/tms/",
-        zoom=[2, 15], nodata=[0, 0, 0]
+        zoom=[2, 15], nodata=[0, 0, 0], convert=True
     ):
         """
         Creates tiles for image using tilers-tools
@@ -206,16 +206,20 @@ class Tiler:
                 default is '~/tms/'
             zoom: list of zoom levels ([start, end])
             nodata: nodata info, must be same number as source bands
+            convert: convert image to byte scale? Default is True
         returns:
             pyramid data and xml data on output folder for zoom levels
         """
 
         input_image = Image(image_path)
 
-        converted_image = Tiler.__convert_to_byte_scale(
-            input_image=input_image,
-            output_folder=output_folder
-        )
+        if convert:
+            converted_image = Tiler.__convert_to_byte_scale(
+                input_image=input_image,
+                output_folder=output_folder
+            )
+        else:
+            converted_image = input_image
 
         try:
             tms = Tiler._generate_tms(
@@ -238,6 +242,7 @@ class Tiler:
             raise XMLError(exc)
 
         # Removing converted image file on output path
-        converted_image.remove_file()
+        if convert:
+            converted_image.remove_file()
 
         return (tms, xml)
