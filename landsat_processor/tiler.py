@@ -105,7 +105,7 @@ class Tiler:
         """
         Generate TMS Pyramid for input Image instance
         params:
-            input_image: Image object
+            input_image: Image path
             naming_image: name of output path
             output_folder: folder for output pyramid
             nodata: nodata info, must be same number as source bands
@@ -127,7 +127,7 @@ class Tiler:
         if not Tiler.__subprocess(command):
             return False
 
-        return True
+        return output_folder
 
     @classmethod
     def _generate_xml(
@@ -245,4 +245,4 @@ class Tiler:
         if convert:
             converted_image.remove_file()
 
-        return (tms, xml)
+        return (os.path.join(tms, converted_image.image_name + '.tms'), xml)
