@@ -28,19 +28,20 @@ from __future__ import print_function
 
 version = '%prog version 3.1.0'
 
-import HTMLParser
 import sys
 import os
 import os.path
 import logging
-from subprocess import *
 import itertools
 import re
 import shutil
 import locale
 import csv
-import htmlentitydefs
 import json
+
+import html.entities 
+
+from subprocess import *
 
 try:
     from osgeo import gdal
@@ -108,7 +109,7 @@ def parallel_map(func, iterable):
 def flatten(two_level_list):
     return list(itertools.chain(*two_level_list))
 
-htmlentitydefs.name2codepoint['apos'] = ord(u"'")
+html.entities.name2codepoint['apos'] = ord(u"'")
 
 def strip_html(text):
     'Removes HTML markup from a text string. http://effbot.org/zone/re-sub.htm#strip-html'
@@ -129,7 +130,7 @@ def strip_html(text):
                 except ValueError:
                     pass
             else:
-                return unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+                return unichr(html.entities.name2codepoint[text[1:-1]])
         return text # leave as is
         # fixup end
 
