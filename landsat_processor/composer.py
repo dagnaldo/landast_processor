@@ -5,8 +5,8 @@ from osgeo import gdal
 
 
 class Composer:
-    """ 
-    Class with method that process and create 
+    """
+    Class with method that process and create
     composition from a Landsat list of files.
     """
     @classmethod
@@ -35,14 +35,13 @@ class Composer:
 
         if not os.path.isfile(image):
             return False
-        
-        try: 
+
+        try:
             ds = gdal.Open(image)
-        except:
+        except Exception as exc:
             return False
 
-        return ds.RasterCount==len(ordered_filelist)
-
+        return ds.RasterCount == len(ordered_filelist)
 
     @staticmethod
     def create_composition(
@@ -55,7 +54,7 @@ class Composer:
             Args:
                 filename: output filename. (my_file, my_file.tif)
                 ordered_filelist: list of images used on merge,
-                    must be ordered by user for correct output 
+                    must be ordered by user for correct output
                 out_path: output path for processed image
                 bands: list bands number for composition. (6,5,4 -> r6g5b4)
 
@@ -64,7 +63,6 @@ class Composer:
                 raises exception if:
                     - return image dataset is not valid
                     - bands number is different of ordered filelist length
-
         """
         type_bands_name = "r{0}g{1}b{2}".format(*bands)
 
@@ -80,7 +78,6 @@ class Composer:
         else:
             quiet = "-q"
 
-
         gdal_mergepy_command = "gdal_merge.py {} -separate \
             -co PHOTOMETRIC=RGB -o {}".format(quiet, file_path)
 
@@ -91,7 +88,7 @@ class Composer:
 
         is_valid = Composer.__validate_output_image_bands(
             file_path, ordered_filelist)
-        
+
         if is_valid:
             return {
                 "name": file_path.split("/")[-1],
@@ -99,4 +96,4 @@ class Composer:
                 "type": type_bands_name
             }
         else:
-            return None        
+            return None
