@@ -29,10 +29,10 @@ class Tiler:
         """Check whether a folder exists, if not the folder is created.
         Always return folder_path.
         """
-        if not os.path.exists(path):
-            os.makedirs(path)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-        return path
+        return folder
 
     @classmethod
     def __validate_image_bands(self, image, data):
