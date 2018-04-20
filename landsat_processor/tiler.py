@@ -24,6 +24,17 @@ class Tiler:
     """
 
     @classmethod
+    def __check_folder(self, folder):
+
+        """Check whether a folder exists, if not the folder is created.
+        Always return folder_path.
+        """
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        return path
+
+    @classmethod
     def __validate_image_bands(self, image, data):
         """
         Internal method to check if image exists and is a valid datasource
@@ -210,7 +221,7 @@ class Tiler:
         returns:
             pyramid data and xml data on output folder for zoom levels
         """
-
+        output_folder = Tiler.__check_folder(output_folder)
         input_image = Image(image_path)
 
         if convert:
