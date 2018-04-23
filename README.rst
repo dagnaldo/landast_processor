@@ -43,6 +43,8 @@ Creates a composition using gdal_merge.py
 
 * Tilers
 
+Creates tilers from a image using tilers-tools from https://github.com/vss-devel/tilers-tools
+
 .. code-block:: python
     
     from landsat_process.composer import Tiler
