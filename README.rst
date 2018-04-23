@@ -64,6 +64,9 @@ Creates tilers from a image using tilers-tools from https://github.com/vss-devel
     * NDVI;
     * NDWI;
     * Change Detection;
+    * NBR;
+    * EVI;
+    * SAVI.
 
 
 Credits
