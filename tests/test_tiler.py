@@ -3,17 +3,35 @@
 
 """Tests for `landsat_processor` package."""
 import os
+import pytest
 import shutil
 import subprocess
 
 from homura import download
 
 from landsat_processor.tiler import Tiler
+from landsat_processor.exceptions import TMSError, XMLError
 
 BANDS = []
 SCENE = "LC08_L1TP_221071_20170521_20170526_01_T1"
 URL = "https://landsat-pds.s3.amazonaws.com/c1/L8/221/071"
 PATH = "test_media/"
+
+
+@pytest.fixture
+def create_data():
+    """ Fixture data (SetUp) """
+    download_images(bands=[4])
+    tiffile = os.path.join(PATH, SCENE + "_B4.TIF")
+    out_path = os.path.join(PATH, 'tms')
+    out_path_check = os.path.join(out_path, SCENE + "_B4.tms")
+
+    return {
+        "zoom": 7,
+        "tiffile": tiffile,
+        "out_path": out_path,
+        "out_path_check": out_path_check
+    }
 
 
 def check_create_folder(folder_path):
@@ -69,29 +87,103 @@ def test_os_environ_gdal_tiler():
     assert('tilers-tools' in os.environ["PATH"])
 
 
-def test_call_gdal_tiler():
+def test_call_gdal_tiler(create_data):
+    """ Tests if gdal_tiler.py is valid and test data creation using it"""
+
     zoom = 7
-    download_images(bands=[4])
-    tiffile = os.path.join(PATH, SCENE + "_B4.TIF")
-    out_path = os.path.join(PATH, 'tms')
-    out_path_check = os.path.join(out_path, SCENE + "_B4.tms")
-
     subprocess.call('gdal_tiler.py -p tms --src-nodata 0 --zoom={} '
-                    '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
+                    '-t {} {}'.format(zoom,
+                                      create_data['out_path'],
+                                      create_data['tiffile']),
+                    shell=True)
 
-    assert(os.path.exists(out_path))
-    assert(os.path.exists(out_path_check))
-    assert(os.path.exists(os.path.join(out_path_check, '7')))
-    assert(not os.path.exists(os.path.join(out_path_check, '8')))
+    assert(os.path.exists(create_data['out_path']))
+    assert(os.path.exists(create_data['out_path_check']))
+    assert(os.path.exists(os.path.join(create_data['out_path_check'], '7')))
+    assert(not os.path.exists(os.path.join(
+        create_data['out_path_check'], '8')))
 
     zoom = '7:8'
     subprocess.call('gdal_tiler.py -p tms --src-nodata 0 --zoom={} '
-                    '-t {} {}'.format(zoom, out_path, tiffile), shell=True)
+                    '-t {} {}'.format(zoom,
+                                      create_data['out_path'],
+                                      create_data['tiffile']),
+                    shell=True)
 
-    assert(os.path.exists(os.path.join(out_path_check, '8')))
+    assert(os.path.exists(os.path.join(create_data['out_path_check'], '8')))
 
-    shutil.rmtree(out_path_check)
+    shutil.rmtree(create_data['out_path_check'])
 
+
+def test_tiler_make_tiles(create_data):
+    """ Tests if Tiler.make_tiles creates a pyramid data """
+
+    data = Tiler.make_tiles(
+        image_path=create_data['tiffile'],
+        link_base=create_data['out_path'],
+        output_folder=create_data['out_path'],
+        zoom=[7, 8],
+        quiet=False,
+        nodata=[0],
+        # convert=True
+    )
+
+    assert(os.path.isfile(create_data['tiffile']))
+    assert(len(data) == 2)
+    assert(data[0] == create_data['out_path_check'])
+    assert(os.path.exists(data[0]))
+    assert(os.path.isfile(data[1]))
+
+    zoom_7 = os.path.join(data[0], '7')
+    zoom_8 = os.path.join(data[0], '8')
+    zoom_9 = os.path.join(data[0], '9')
+
+    assert(os.path.exists(zoom_7))
+    assert(os.path.exists(zoom_8))
+    assert(not os.path.exists(zoom_9))
+
+
+def test_tiler_make_tiles_exception(create_data):
+
+    """ When nodata is different of datasource bands count"""
+    with pytest.raises(TMSError):
+        Tiler.make_tiles(
+            image_path=create_data['tiffile'],
+            link_base=create_data['out_path'],
+            output_folder=create_data['out_path'],
+            zoom=[7, 8],
+            quiet=False,
+            nodata=[0,0],
+        )
+
+        """ When image path is a invalid datasource"""
+    with pytest.raises(Exception):
+        Tiler.make_tiles(
+            image_path=None,
+            link_base=create_data['out_path'],
+            output_folder=create_data['out_path'],
+            zoom=[7, 8],
+            quiet=False,
+            nodata=[0,0],
+        )
+
+
+    """ When Linkbase is None"""
+    with pytest.raises(Exception):
+        Tiler.make_tiles(
+            image_path=create_data['tiffile'],
+            link_base=None,
+            output_folder=create_data['out_path'],
+            zoom=[7, 8],
+            quiet=False,
+            nodata=[0],
+        )
+
+    """ When exists only image_path """
+    with pytest.raises(Exception):
+        Tiler.make_tiles(
+            image_path=create_data['tiffile'],
+        )
 
 def test_tiler_tools():
     pass
