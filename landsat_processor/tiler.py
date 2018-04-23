@@ -100,8 +100,8 @@ class Tiler:
 
         if not Util._validate_image_bands(image_path, nodata):
             Util._print('Validation error: check log for more details.', quiet)
-            raise TMSError('Input image is not a valid data, check if \
-                            length must be same as datasource bands')
+            raise TMSError(1, 'Input image is not a valid datasource, ' +
+                            'nodata length must be same as datasource bands')
 
         Util._print('OK\n', quiet)
 
@@ -145,7 +145,7 @@ class Tiler:
             Util._print("OK\n", quiet)
 
         except Exception as exc:
-            raise ValueError(exc)
+            raise XMLError(10, exc)
 
         target_window = "<TargetWindow>\n\
             <UpperLeftX>{0}</UpperLeftX>\n\
@@ -236,8 +236,10 @@ class Tiler:
                 zoom=zoom,
                 quiet=quiet
             )
+        except TMSError as tms_error:
+            raise tms_error
         except Exception as exc:
-            raise TMSError(exc)
+            raise exc
 
         try:
             xml = Tiler._generate_xml(
@@ -247,8 +249,10 @@ class Tiler:
                 output_folder=output_folder,
                 quiet=quiet
             )
+        except XMLError as xml_error:
+            raise xml_error
         except Exception as exc:
-            raise XMLError(exc)
+            raise exc
 
         # Removing converted image file on output path
         if convert:
