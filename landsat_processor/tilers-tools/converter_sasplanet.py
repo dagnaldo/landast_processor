@@ -99,7 +99,7 @@ class SASBerkeley(TileDir):
         z, x10, y10, xy8 = path2list(db_path)[-5:-1]
         zoom = int(z[1:]) - 1
         x_min, y_min = [int(d) << 8 for d in xy8.split('.')]
-        x_max, y_max = [d | 0xFF for d in x_min, y_min]
+        x_max, y_max = [d | 0xFF for d in (x_min, y_min)]
 
         if not self.in_range((zoom, x_min, y_min), (zoom, x_max, y_max)):
             return None

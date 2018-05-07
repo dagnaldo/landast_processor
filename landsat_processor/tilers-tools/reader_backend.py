@@ -23,7 +23,7 @@
 #  DEALINGS IN THE SOFTWARE.
 ###############################################################################
 
-from __future__ import with_statement
+from __future__ import with_statement, print_function
 
 import os
 import logging
@@ -301,7 +301,7 @@ class SrcLayer(object):
             os.chdir(start_dir)
 
         if options.get_cutline: # print cutline then return
-            print poly
+            print(poly)
             return
         if gmt_data and options.cut_file: # create shapefile with a cut polygon
             with open(base+'.gmt','w+') as f:
