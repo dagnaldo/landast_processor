@@ -22,6 +22,7 @@
 #  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 #  DEALINGS IN THE SOFTWARE.
 ###############################################################################
+from __future__ import print_function
 
 import os
 import os.path
@@ -169,7 +170,7 @@ class TileConverter(object):
     @staticmethod
     def list_tile_converters():
         for cls in tile_converters:
-            print cls.profile_name
+            print(cls.profile_name)
 
 tile_converters.append(TileConverter)
 
@@ -371,12 +372,12 @@ class TileSet(object):
     @staticmethod
     def list_profiles():
         for cl in tileset_profiles:
-            print '%10s\t%s%s\t%s' % (
+            print("%10s\t%s%s\t%s" % (
                 cl.format,
                 'r' if cl.input else ' ',
                 'w' if cl.output else ' ',
                 cl.__doc__
-                )
+                ))
 
     def in_range(self, ul_coords, lr_coords=None):
         if not ul_coords:

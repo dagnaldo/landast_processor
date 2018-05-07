@@ -205,7 +205,7 @@ class MergeSet:
                     src_raster = Image.open(src_file).convert("RGBA")
                 try:
                     dst_raster = Image.composite(src_raster, Image.open(dst_file).convert("RGBA"), src_raster)
-                except IOError, exception:
+                except IOError as exception:
                     error('merge_tile', exception.message, dst_file)
 
                 dst_raster.save(dst_file)
@@ -214,7 +214,7 @@ class MergeSet:
                 self.underlay(tile, src_file, src_raster)
 
         except KeyboardInterrupt: # http://jessenoller.com/2009/01/08/multiprocessingpool-and-keyboardinterrupt/
-            print 'got KeyboardInterrupt'
+            print('got KeyboardInterrupt')
             raise KeyboardInterruptError()
         return (tile, transp) # send back transparency values for caching
 
